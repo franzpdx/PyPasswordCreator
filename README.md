@@ -17,4 +17,5 @@ Application for creating passwords and recording sets of sign-in credentials for
 
 This was an exercise in learning Python.
 It is Day 29 cirriculum as part of [Angela Yu's 100 Days of Code](https://www.udemy.com/course/100-days-of-code/) course on Udemy
+Including improvements from Day 30: exception handling and JSON serialization
 
