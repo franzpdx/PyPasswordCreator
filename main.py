@@ -2,6 +2,7 @@ from tkinter import *
 from tkinter import messagebox
 from random import choice, randint, shuffle
 import pyperclip
+import json
 
 # Program: main.py
 # Project: Password Generator and Manager
@@ -25,8 +26,10 @@ def generate_password():
     shuffle(password_list)
 
     password = "".join(password_list)
+    password_entry.delete(0, END)
     password_entry.insert(0, password)
     pyperclip.copy(password)
+
 
 # Function: save
 # Purpose:  Saves the set of credentials to a local file
@@ -35,47 +38,83 @@ def save():
     website = website_entry.get()
     name = name_entry.get()
     password = password_entry.get()
+    new_json_data = {
+        website: {
+            "name": name,
+            "password": password,
+        }
+    }
 
     if len(website) == 0 or len(password) == 0:
         messagebox.showinfo(title="All fields are mandatory!", message="Please fill out all fields before saving!")
     else:
-        is_ok = messagebox.askokcancel(title=website, message=f"Saving this set of credentials: \nEmail: {name} "
-                                                      f"\nPassword: {password} \nProceed?")
-        if is_ok:
-            with open("data.txt", "a") as data_file:
-                data_file.write(f"{website} | {name} | {password}\n")
-                website_entry.delete(0, END)
-                password_entry.delete(0, END)
+        try:                        # Try to open the existing file
+            with open("data.json", "r") as data_file:
+                data = json.load(data_file)
+        except FileNotFoundError:   # If we couldn't open an existing file
+                with open("data.json", "w") as data_file:   # Create a new file
+                    json.dump(new_json_data, data_file, indent=4)   # Write json info to the file
+        else:
+            data.update(new_json_data)  # Updating existing file with new data
 
-# UI Setup ***********************************************************
+            with open("data.json", "w") as data_file:   # Write json info to the file
+                    json.dump(data, data_file, indent=4)
+        finally:
+            website_entry.delete(0, END)
+            password_entry.delete(0, END)
+        messagebox.showinfo(title=website, message=f"  Saved! \nWebsite: {website} \nEmail: {name} "
+                                                   f"\nPassword: {password}")
+
+
+# Function: find_password
+# Purpose:  Attempts to find the password and sign-in name associated with the given website in the data file
+def find_password():
+    website = website_entry.get()
+    try:
+        with open("data.json") as data_file:
+            data = json.load(data_file)
+    except FileNotFoundError:
+        messagebox.showinfo(title="Error", message="No Data File Found.")
+    else:
+        if website in data:
+            name = data[website]["name"]
+            password = data[website]["password"]
+            messagebox.showinfo(title=website, message=f"Username: {name}\nPassword: {password}")
+        else:
+            messagebox.showinfo(title="Error", message=f"No details for {website} exists.")
+
+
+# --------
+# UI Setup
 window = Tk()
 window.title("Password Manager")
 window.config(padx=50, pady=50)
 
-canvas = Canvas(height=200, width=200)
+canvas = Canvas(height=200, width=250)
 logo_img = PhotoImage(file="logo.png")
-canvas.create_image(100, 100, image=logo_img)
+canvas.create_image(150, 100, image=logo_img)
 canvas.grid(row=0, column=1)
 
-#Labels
+# Labels
 website_label = Label(text="Website:")
 website_label.grid(row=1, column=0)
-name_label = Label(text="User name:")
+name_label = Label(text="Username:")
 name_label.grid(row=2, column=0)
 password_label = Label(text="Password:")
 password_label.grid(row=3, column=0)
 
-#Entries
-website_entry = Entry(width=35)
-website_entry.grid(row=1, column=1, columnspan=2)
+# Entries
+website_entry = Entry(width=21)
+website_entry.grid(row=1, column=1)
 website_entry.focus()
-name_entry = Entry(width=35)
+name_entry = Entry(width=39)
 name_entry.grid(row=2, column=1, columnspan=2)
-#name_entry.insert(0, "examplename@gmail.com")
 password_entry = Entry(width=21)
 password_entry.grid(row=3, column=1)
 
 # Buttons
+search_button = Button(text="Search", width=13, command=find_password)
+search_button.grid(row=1, column=2)
 generate_password_button = Button(text="Generate Password", command=generate_password)
 generate_password_button.grid(row=3, column=2)
 add_button = Button(text="Add", width=36, command=save)
